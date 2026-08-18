@@ -213,7 +213,7 @@ docker run -p 8080:8080 \
 
 | Method & route | Purpose |
 | --- | --- |
-| `POST /api/stocks/ingest` | Fetch AAPL data from Alpha Vantage and store any new days. Idempotent — existing days are skipped. Returns an ingestion summary. |
+| `POST /api/stocks/ingest` | Fetch AAPL data from Alpha Vantage and store any new days. Optional `count` (default 100) chooses how many of the most recent days to keep: up to 100 uses Alpha Vantage's small *compact* feed; a larger value (the frontend's "Full history" button sends one) pulls the *full* ~6,500-day feed and keeps the newest `count`. Idempotent — existing days are skipped. Returns an ingestion summary. |
 | `GET /api/stocks` | Return stored records as a paged result. Supports `page`, `pageSize` (max 100), `search`, `fromDate`, `toDate`, `sortBy` (`priceDate`/`close`/`volume`), `sortDirection` (`asc`/`desc`). Never calls Alpha Vantage. |
 | `GET /api/stocks/latest` | Return the newest stored record, or `404` if the store is empty. |
 | `GET /api/stocks/{date}` | Optional. Return the record for a specific `yyyy-MM-dd`, or `404`. |
@@ -244,7 +244,14 @@ Example `GET /api/stocks?page=1&pageSize=20`:
 JavaScript, served through ASP.NET Core static files (`app.UseDefaultFiles()` +
 `app.UseStaticFiles()`), so it loads at `/`. It shows the latest close in a summary card
 and the full history in a table with a debounced search box, from/to date filters, five
-sort options, and pagination controls.
+sort options, and pagination controls. Each row also shows a coloured **Change** (close vs
+open, green ▲ / red ▼) and a **Day range** bar (where the open-to-close move sat within the
+day's low–high); column headings and the range bars have explanatory tooltips.
+
+The header lets the user choose how many days to ingest — quick presets (25 / 50 / 100) or a
+custom value up to 100 via the **Ingest Data** button (Alpha Vantage's compact feed) — plus a
+separate **Full history…** button that opens a confirmation modal explaining the ~6,500-record
+pull before it runs.
 
 Crucially, **the browser only ever calls this application's own API** — it never contacts
 Alpha Vantage directly, and it never receives the API key. Search, filtering, sorting and

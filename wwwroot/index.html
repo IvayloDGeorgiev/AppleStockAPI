@@ -15,11 +15,39 @@
                 <h1>Apple Stock Explorer</h1>
                 <p class="subtitle">Historical AAPL market data &middot; powered by Alpha Vantage</p>
             </div>
-            <button id="refreshBtn" type="button" class="btn btn-primary">
-                Refresh Stock Data
-            </button>
+            <div class="ingest-controls">
+                <span class="ingest-label" id="ingestLabel">Days to pull</span>
+                <div class="pills" role="group" aria-labelledby="ingestLabel">
+                    <button type="button" class="pill" data-count="25">25</button>
+                    <button type="button" class="pill" data-count="50">50</button>
+                    <button type="button" class="pill is-active" data-count="100">100</button>
+                </div>
+                <label for="customCount" class="visually-hidden">Custom number of days to pull (1 to 100)</label>
+                <input id="customCount" type="number" min="1" max="100" step="1"
+                       inputmode="numeric" placeholder="1–100" class="custom-count" />
+                <button id="ingestBtn" type="button" class="btn btn-primary">Ingest Data</button>
+                <button id="fullBtn" type="button" class="btn btn-ghost">Full history…</button>
+            </div>
         </div>
     </header>
+
+    <!-- Confirmation modal for the full-history pull -->
+    <div id="fullModal" class="modal-overlay" role="dialog" aria-modal="true"
+         aria-labelledby="fullModalTitle" aria-describedby="fullModalDesc" hidden>
+        <div class="modal" role="document">
+            <h2 id="fullModalTitle" class="modal-title">Pull full history?</h2>
+            <p id="fullModalDesc" class="modal-desc">
+                This fetches Apple's entire available daily history from Alpha Vantage —
+                about <strong>6,500 trading days (~25 years)</strong> — in a single request
+                (roughly 1–2&nbsp;MB) and stores any days you don't already have. It can take a
+                few seconds. Your usual pull only grabs the last 100 days.
+            </p>
+            <div class="modal-actions">
+                <button id="modalCancel" type="button" class="btn btn-ghost">Cancel</button>
+                <button id="modalConfirm" type="button" class="btn btn-primary">Pull full history</button>
+            </div>
+        </div>
+    </div>
 
     <main class="container">
         <!-- Global banner for ingestion results / errors -->
@@ -125,7 +153,7 @@
                 <div id="empty" class="state-message" hidden>
                     <p class="state-title">No stock data available yet.</p>
                     <p class="state-detail">Run the ingestion endpoint to retrieve Apple stock data.</p>
-                    <button id="importBtn" type="button" class="btn btn-primary">Import AAPL Data</button>
+                    <button id="importBtn" type="button" class="btn btn-primary">Ingest AAPL Data</button>
                 </div>
 
                 <div id="tableWrap" class="table-scroll" hidden>

@@ -8,8 +8,12 @@ namespace AppleStockAPI.Services;
 /// </summary>
 public interface IStockDataService
 {
-    /// <summary>Fetch AAPL daily data from Alpha Vantage and store any new days.</summary>
-    Task<IngestionResult> IngestAppleStockDataAsync(CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Fetch AAPL daily data from Alpha Vantage and store any new days. <paramref name="recordCount"/>
+    /// is how many of the most recent trading days to pull (Alpha Vantage is queried with
+    /// outputsize=compact for up to 100, otherwise outputsize=full).
+    /// </summary>
+    Task<IngestionResult> IngestAppleStockDataAsync(int recordCount, CancellationToken cancellationToken = default);
 
     /// <summary>Return a filtered, sorted, paged view of stored records (database-side).</summary>
     Task<PagedResult<StockPriceDto>> GetStocksAsync(

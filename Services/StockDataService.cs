@@ -19,6 +19,9 @@ public class StockDataService : IStockDataService
     private const string Symbol = "AAPL";
     private const string SourceName = "Alpha Vantage";
 
+    // Alpha Vantage's compact response returns the latest 100 days; beyond that we need "full".
+    private const int CompactMaxDays = 100;
+
     private static readonly Regex YearOnly = new(@"^\d{4}$", RegexOptions.Compiled);
     private static readonly Regex YearMonth = new(@"^\d{4}-\d{2}$", RegexOptions.Compiled);
     private static readonly Regex YearMonthDay = new(@"^\d{4}-\d{2}-\d{2}$", RegexOptions.Compiled);
@@ -45,9 +48,20 @@ public class StockDataService : IStockDataService
         _logger = logger;
     }
 
-    public async Task<IngestionResult> IngestAppleStockDataAsync(CancellationToken cancellationToken = default)
+    public async Task<IngestionResult> IngestAppleStockDataAsync(int recordCount, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Starting {Symbol} ingestion", Symbol);
+        if (recordCount < 1)
+        {
+            recordCount = CompactMaxDays;
+        }
+
+        // Use Alpha Vantage's small compact feed (last 100 days) for up to 100 records, and only
+        // reach for the large "full" (20+ year, ~6,500 day) feed when more than 100 are requested.
+        var useFullHistory = recordCount > CompactMaxDays;
+
+        _logger.LogInformation(
+            "Starting {Symbol} ingestion for the {Count} most recent days ({Feed} feed)",
+            Symbol, recordCount, useFullHistory ? "full" : "compact");
 
         if (!_alphaVantage.HasValidApiKey)
         {
@@ -57,7 +71,7 @@ public class StockDataService : IStockDataService
                 "appsettings.Development.json (or the AlphaVantage__ApiKey environment variable).");
         }
 
-        var requestUri = BuildRequestUri();
+        var requestUri = BuildRequestUri(useFullHistory);
 
         _logger.LogInformation("Calling Alpha Vantage for {Symbol}", Symbol);
 
@@ -84,7 +98,17 @@ public class StockDataService : IStockDataService
         var parsed = DeserializeAndValidate(payload);
 
         var timeSeries = parsed.TimeSeries!;
-        _logger.LogInformation("Received {Count} stock records for {Symbol}", timeSeries.Count, Symbol);
+
+        // Keep only the most recent `recordCount` days (keys are "yyyy-MM-dd", which sort
+        // chronologically, so descending order gives us the newest days first).
+        var selected = timeSeries
+            .OrderByDescending(kvp => kvp.Key)
+            .Take(recordCount)
+            .ToList();
+
+        _logger.LogInformation(
+            "Received {Available} records for {Symbol}; taking the most recent {Taken}",
+            timeSeries.Count, Symbol, selected.Count);
 
         // Existing days for this symbol, so we can skip anything already stored.
         var existingDates = await _dbContext.StockPrices
@@ -98,7 +122,7 @@ public class StockDataService : IStockDataService
         var toInsert = new List<StockPrice>();
         var skipped = 0;
 
-        foreach (var (dateText, daily) in timeSeries)
+        foreach (var (dateText, daily) in selected)
         {
             if (!TryMap(dateText, daily, ingestedAt, out var stockPrice))
             {
@@ -138,7 +162,7 @@ public class StockDataService : IStockDataService
         return new IngestionResult
         {
             Symbol = Symbol,
-            RecordsReceived = timeSeries.Count,
+            RecordsReceived = selected.Count,
             RecordsInserted = toInsert.Count,
             RecordsSkipped = skipped
         };
@@ -204,13 +228,14 @@ public class StockDataService : IStockDataService
 
     // ----- helpers -------------------------------------------------------
 
-    private string BuildRequestUri()
+    private string BuildRequestUri(bool useFullHistory)
     {
         // Built programmatically; the key is supplied via configuration, never hard-coded.
+        var outputSize = useFullHistory ? "full" : "compact";
         var baseUrl = _alphaVantage.BaseUrl.TrimEnd('?');
         var queryString =
             $"function=TIME_SERIES_DAILY&symbol={Uri.EscapeDataString(Symbol)}" +
-            $"&outputsize=compact&apikey={Uri.EscapeDataString(_alphaVantage.ApiKey)}";
+            $"&outputsize={outputSize}&apikey={Uri.EscapeDataString(_alphaVantage.ApiKey)}";
         return $"{baseUrl}?{queryString}";
     }
 
