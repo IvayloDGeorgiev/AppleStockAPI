@@ -65,6 +65,17 @@
         <section aria-labelledby="historyHeading">
             <h2 id="historyHeading" class="section-heading">Historical Market Data</h2>
 
+            <p class="explainer">
+                Each row is one trading day. <strong>Open</strong>, <strong>High</strong>,
+                <strong>Low</strong> and <strong>Close</strong> are the day's first, highest,
+                lowest and last prices; <strong>Volume</strong> is the number of shares traded.
+                <strong>Change</strong> compares the close with the open —
+                <span class="legend-key up">▲ green</span> means the price finished higher that day,
+                <span class="legend-key down">▼ red</span> means it finished lower. The
+                <strong>Day range</strong> bar shows where the open-to-close move sat inside the
+                day's low-to-high range. Hover any column heading or range bar for details.
+            </p>
+
             <!-- Search -->
             <div class="search-wrap">
                 <label for="searchInput" class="visually-hidden">Search stock data</label>
@@ -121,14 +132,16 @@
                     <table class="stock-table">
                         <thead>
                             <tr>
-                                <th scope="col">Date</th>
-                                <th scope="col">Symbol</th>
-                                <th scope="col" class="num">Open</th>
-                                <th scope="col" class="num">High</th>
-                                <th scope="col" class="num">Low</th>
-                                <th scope="col" class="num">Close</th>
-                                <th scope="col" class="num">Volume</th>
-                                <th scope="col">Source</th>
+                                <th scope="col"><abbr title="The trading day this record represents">Date</abbr></th>
+                                <th scope="col"><abbr title="Stock ticker symbol">Symbol</abbr></th>
+                                <th scope="col" class="num"><abbr title="Opening price — the first trade of the day">Open</abbr></th>
+                                <th scope="col" class="num"><abbr title="Highest price reached during the day">High</abbr></th>
+                                <th scope="col" class="num"><abbr title="Lowest price reached during the day">Low</abbr></th>
+                                <th scope="col" class="num"><abbr title="Closing price — the last trade of the day">Close</abbr></th>
+                                <th scope="col" class="num"><abbr title="Close minus open: how much the price moved that day">Change</abbr></th>
+                                <th scope="col"><abbr title="Where the open-to-close move sat within the day's low-to-high range">Day range</abbr></th>
+                                <th scope="col" class="num"><abbr title="Number of shares traded during the day">Volume</abbr></th>
+                                <th scope="col"><abbr title="Where the data came from">Source</abbr></th>
                             </tr>
                         </thead>
                         <tbody id="stockTableBody"></tbody>

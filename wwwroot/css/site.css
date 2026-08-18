@@ -7,6 +7,8 @@
     --accent: #0071e3;
     --accent-hover: #0077ed;
     --positive: #1a8a4c;
+    --up: #12833c;
+    --down: #c4351c;
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.05);
     --radius: 18px;
     --radius-sm: 10px;
@@ -232,6 +234,68 @@ body {
 }
 
 .filters .btn-ghost { margin-left: auto; }
+
+/* Explainer / legend under the section heading */
+.explainer {
+    margin: -6px 0 20px;
+    max-width: 900px;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.explainer strong { color: var(--text); font-weight: 600; }
+.legend-key { font-weight: 600; white-space: nowrap; }
+
+/* Direction colours (paired with arrows / signs, never colour alone) */
+.up { color: var(--up); }
+.down { color: var(--down); }
+.flat { color: var(--text-muted); }
+.legend-key.up { color: var(--up); }
+.legend-key.down { color: var(--down); }
+
+/* Header tooltips */
+.stock-table th abbr {
+    text-decoration: none;
+    cursor: help;
+    border-bottom: 1px dotted #c7c7cc;
+}
+
+/* Change cell */
+.change-cell { font-variant-numeric: tabular-nums; font-weight: 500; white-space: nowrap; }
+
+/* Day-range bar */
+.range-cell { min-width: 120px; }
+
+.range-track {
+    position: relative;
+    height: 8px;
+    background: #ececf0;
+    border-radius: 999px;
+    min-width: 96px;
+}
+
+.range-seg {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    border-radius: 999px;
+    min-width: 2px;
+}
+
+.range-seg.up { background: var(--up); }
+.range-seg.down { background: var(--down); }
+.range-seg.flat { background: var(--text-muted); }
+
+.range-marker {
+    position: absolute;
+    top: -2px;
+    width: 2px;
+    height: 12px;
+    background: var(--text);
+    border-radius: 1px;
+    transform: translateX(-1px);
+}
 
 /* Table */
 .table-card { overflow: hidden; }

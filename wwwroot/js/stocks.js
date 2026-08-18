@@ -93,6 +93,7 @@ function renderStocks(result) {
     el.tableBody.replaceChildren();
 
     for (const item of result.items) {
+        const dir = directionOf(item);            // "up" | "down" | "flat"
         const tr = document.createElement("tr");
         tr.append(
             cell(item.priceDate),
@@ -100,7 +101,9 @@ function renderStocks(result) {
             cell(formatCurrency(item.open), "num"),
             cell(formatCurrency(item.high), "num"),
             cell(formatCurrency(item.low), "num"),
-            cell(formatCurrency(item.close), "num close-cell"),
+            cell(formatCurrency(item.close), `num close-cell ${dir}`),
+            changeCell(item, dir),
+            rangeCell(item, dir),
             cell(formatVolume(item.volume), "num"),
             cell(item.source || "—")
         );
@@ -118,6 +121,64 @@ function cell(text, className) {
     const td = document.createElement("td");
     td.textContent = text;
     if (className) td.className = className;
+    return td;
+}
+
+// Direction of the day: did it close above ("up"), below ("down") or at ("flat") the open?
+function directionOf(item) {
+    if (item.close > item.open) return "up";
+    if (item.close < item.open) return "down";
+    return "flat";
+}
+
+// "Change" cell: arrow + signed amount + signed percent, coloured by direction.
+// Colour is never the only signal — an arrow and +/- sign carry it for colour-blind users.
+function changeCell(item, dir) {
+    const delta = item.close - item.open;
+    const pct = item.open !== 0 ? (delta / item.open) * 100 : 0;
+    const arrow = dir === "up" ? "▲" : dir === "down" ? "▼" : "→";
+    const sign = delta > 0 ? "+" : delta < 0 ? "−" : "";
+    const abs = Math.abs(delta);
+
+    const td = document.createElement("td");
+    td.className = `num change-cell ${dir}`;
+    td.textContent = `${arrow} ${sign}${formatCurrency(abs)} (${sign}${Math.abs(pct).toFixed(2)}%)`;
+    const word = dir === "up" ? "up" : dir === "down" ? "down" : "unchanged";
+    td.setAttribute("aria-label",
+        `Closed ${word} ${formatCurrency(abs)}, ${Math.abs(pct).toFixed(2)} percent`);
+    return td;
+}
+
+// "Day range" cell: a Low→High track with the open-to-close move drawn as a coloured
+// segment and a marker at the close. Hover shows the exact figures.
+function rangeCell(item, dir) {
+    const span = item.high - item.low;
+    const pos = (v) => (span > 0 ? ((v - item.low) / span) * 100 : 50);
+    const start = Math.min(pos(item.open), pos(item.close));
+    const width = Math.abs(pos(item.close) - pos(item.open));
+
+    const track = document.createElement("div");
+    track.className = "range-track";
+
+    const seg = document.createElement("div");
+    seg.className = `range-seg ${dir}`;
+    seg.style.left = `${start}%`;
+    seg.style.width = `${Math.max(width, 2)}%`;
+
+    const marker = document.createElement("div");
+    marker.className = "range-marker";
+    marker.style.left = `${pos(item.close)}%`;
+
+    track.append(seg, marker);
+
+    const td = document.createElement("td");
+    td.className = "range-cell";
+    const label =
+        `Open ${formatCurrency(item.open)} · High ${formatCurrency(item.high)} · ` +
+        `Low ${formatCurrency(item.low)} · Close ${formatCurrency(item.close)}`;
+    td.title = label;
+    td.setAttribute("aria-label", label);
+    td.append(track);
     return td;
 }
 
