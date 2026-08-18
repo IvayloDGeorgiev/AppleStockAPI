@@ -1,13 +1,7 @@
 @host = http://localhost:5174
 
-### Ingest the latest 100 AAPL days from Alpha Vantage (compact feed)
+### Ingest the latest AAPL data from Alpha Vantage (free compact feed = last 100 days)
 POST {{host}}/api/stocks/ingest
-
-### Ingest only the latest 25 days
-POST {{host}}/api/stocks/ingest?count=25
-
-### Ingest the full ~6,500-day history (Alpha Vantage full feed)
-POST {{host}}/api/stocks/ingest?count=100000
 
 ### Get stored data (paged, newest first)
 GET {{host}}/api/stocks?page=1&pageSize=20&sortBy=priceDate&sortDirection=desc

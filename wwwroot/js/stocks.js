@@ -8,14 +8,6 @@ let currentPage = 1;
 let totalPages = 1;
 let isLoading = false;
 
-// How many of the most recent trading days the next compact ingest should pull (1–100).
-const MAX_INGEST = 100;
-let ingestCount = 100;
-
-// Sentinel for the "Full history" pull — larger than any real history, so the API keeps
-// everything Alpha Vantage's full feed returns (~6,500 days).
-const FULL_COUNT = 100000;
-
 // Map the Sort dropdown to the API's sortBy / sortDirection parameters.
 const SORT_OPTIONS = {
     "newest":      { sortBy: "priceDate", sortDirection: "desc" },
@@ -28,12 +20,6 @@ const SORT_OPTIONS = {
 // ---- Element references ----------------------------------------------------
 const el = {
     ingestBtn: document.getElementById("ingestBtn"),
-    fullBtn: document.getElementById("fullBtn"),
-    pills: Array.from(document.querySelectorAll(".pill")),
-    customCount: document.getElementById("customCount"),
-    modal: document.getElementById("fullModal"),
-    modalConfirm: document.getElementById("modalConfirm"),
-    modalCancel: document.getElementById("modalCancel"),
     banner: document.getElementById("banner"),
 
     latestCard: document.getElementById("latestCard"),
@@ -388,24 +374,15 @@ function setLatest(record) {
     el.latestVolume.textContent = formatVolume(record.volume);
 }
 
-// Shared ingest runner. `count` is how many days to pull; `sourceBtn` is the button that
-// triggered it (shown as "Ingesting…" while it runs).
-async function runIngest(count, sourceBtn) {
-    const buttons = [el.ingestBtn, el.fullBtn];
-    buttons.forEach((b) => { b.disabled = true; });
-    const originalText = sourceBtn.textContent;
-    sourceBtn.textContent = "Ingesting…";
-
-    const isFull = count > MAX_INGEST;
-    showBanner(
-        isFull
-            ? "Contacting Alpha Vantage for the full history… this can take a few seconds."
-            : `Contacting Alpha Vantage for the last ${count} day${count === 1 ? "" : "s"}…`,
-        false
-    );
+// Pull the latest 100 AAPL days from Alpha Vantage (the free compact feed) and store new ones.
+async function ingestData() {
+    el.ingestBtn.disabled = true;
+    const originalText = el.ingestBtn.textContent;
+    el.ingestBtn.textContent = "Ingesting…";
+    showBanner("Contacting Alpha Vantage…", false);
 
     try {
-        const response = await fetch(`${API_BASE}/ingest?count=${count}`, { method: "POST" });
+        const response = await fetch(`${API_BASE}/ingest`, { method: "POST" });
         const body = await response.json().catch(() => null);
 
         if (!response.ok) {
@@ -429,57 +406,9 @@ async function runIngest(count, sourceBtn) {
         console.error("Ingestion request failed", err);
         showBanner("Unable to reach the server. Please try again.", true);
     } finally {
-        buttons.forEach((b) => { b.disabled = false; });
-        sourceBtn.textContent = originalText;
+        el.ingestBtn.disabled = false;
+        el.ingestBtn.textContent = originalText;
     }
-}
-
-function ingestData() {
-    return runIngest(ingestCount, el.ingestBtn);
-}
-
-// ---- Full-history confirmation modal ---------------------------------------
-function openFullModal() {
-    el.modal.hidden = false;
-    el.modalConfirm.focus();
-    document.addEventListener("keydown", onModalKeydown);
-}
-
-function closeFullModal() {
-    el.modal.hidden = true;
-    document.removeEventListener("keydown", onModalKeydown);
-    el.fullBtn.focus();
-}
-
-function onModalKeydown(e) {
-    if (e.key === "Escape") closeFullModal();
-}
-
-function confirmFullIngest() {
-    closeFullModal();
-    return runIngest(FULL_COUNT, el.fullBtn);
-}
-
-// Choose how many days the next ingest pulls: preset pills or a custom 1–100 value.
-function selectPillCount(count) {
-    ingestCount = count;
-    el.customCount.value = "";
-    el.pills.forEach((p) => {
-        const active = Number(p.dataset.count) === count;
-        p.classList.toggle("is-active", active);
-        p.setAttribute("aria-pressed", String(active));
-    });
-}
-
-function applyCustomCount() {
-    const raw = parseInt(el.customCount.value, 10);
-    if (Number.isNaN(raw)) return;
-    ingestCount = Math.min(Math.max(raw, 1), MAX_INGEST);
-    if (ingestCount !== raw) el.customCount.value = String(ingestCount);
-    el.pills.forEach((p) => {
-        p.classList.remove("is-active");
-        p.setAttribute("aria-pressed", "false");
-    });
 }
 
 // ---- Filters ---------------------------------------------------------------
@@ -508,15 +437,7 @@ function debounce(fn, delay) {
 // ---- Wire up events --------------------------------------------------------
 el.ingestBtn.addEventListener("click", ingestData);
 el.importBtn.addEventListener("click", ingestData);
-el.pills.forEach((p) => p.addEventListener("click", () => selectPillCount(Number(p.dataset.count))));
-el.customCount.addEventListener("input", applyCustomCount);
 el.clearBtn.addEventListener("click", clearFilters);
-
-// Full-history modal
-el.fullBtn.addEventListener("click", openFullModal);
-el.modalConfirm.addEventListener("click", confirmFullIngest);
-el.modalCancel.addEventListener("click", closeFullModal);
-el.modal.addEventListener("click", (e) => { if (e.target === el.modal) closeFullModal(); });
 el.sort.addEventListener("change", applyFilters);
 el.fromDate.addEventListener("change", applyFilters);
 el.toDate.addEventListener("change", applyFilters);

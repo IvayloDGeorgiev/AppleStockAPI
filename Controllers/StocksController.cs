@@ -22,27 +22,18 @@ public class StocksController : ControllerBase
         _logger = logger;
     }
 
-    /// <summary>Smallest and largest number of days a single ingest call may request.</summary>
-    private const int MinIngestCount = 1;
-    private const int MaxIngestCount = 100_000;   // effectively "all available history" (~6,500 days)
-    private const int DefaultIngestCount = 100;
-
     /// <summary>
-    /// Fetch AAPL daily data from Alpha Vantage and store any new days. Running it again is
-    /// safe: existing days are skipped. Optional <paramref name="count"/> chooses how many of
-    /// the most recent trading days to keep: up to 100 uses the small compact feed; a larger
-    /// value (e.g. the frontend's "Full history" option) pulls the full ~20-year feed and keeps
-    /// the newest <paramref name="count"/> days. Default 100.
+    /// Fetch the latest AAPL daily data from Alpha Vantage (the free compact feed — last 100
+    /// days) and store any new days. Running it again is safe: existing days are skipped.
     /// </summary>
     [HttpPost("ingest")]
     [ProducesResponseType(typeof(IngestionResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status502BadGateway)]
-    public async Task<IActionResult> Ingest([FromQuery] int? count, CancellationToken cancellationToken)
+    public async Task<IActionResult> Ingest(CancellationToken cancellationToken)
     {
-        var recordCount = Math.Clamp(count ?? DefaultIngestCount, MinIngestCount, MaxIngestCount);
         try
         {
-            var result = await _stockDataService.IngestAppleStockDataAsync(recordCount, cancellationToken);
+            var result = await _stockDataService.IngestAppleStockDataAsync(cancellationToken);
             return Ok(result);
         }
         catch (InvalidOperationException ex)

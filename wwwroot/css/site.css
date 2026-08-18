@@ -72,60 +72,6 @@ body {
     font-size: 15px;
 }
 
-/* Ingestion controls (header) */
-.ingest-controls {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.ingest-label {
-    font-size: 13px;
-    color: var(--text-muted);
-}
-
-.pills {
-    display: inline-flex;
-    gap: 6px;
-}
-
-.pill {
-    font: inherit;
-    font-size: 14px;
-    padding: 8px 14px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    border-radius: 980px;
-    cursor: pointer;
-    color: var(--text);
-    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
-
-.pill:hover { background: #f2f2f5; }
-
-.pill.is-active {
-    background: var(--text);
-    color: #fff;
-    border-color: var(--text);
-}
-
-.custom-count {
-    font: inherit;
-    width: 96px;
-    padding: 8px 12px;
-    border: 1px solid var(--border);
-    border-radius: 980px;
-    background: var(--surface);
-    color: var(--text);
-}
-
-.custom-count:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
-}
-
 /* Buttons */
 .btn {
     font: inherit;
@@ -159,55 +105,6 @@ body {
     opacity: 0.45;
     cursor: not-allowed;
     transform: none;
-}
-
-/* Modal */
-.modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    z-index: 100;
-}
-
-.modal {
-    background: var(--surface);
-    border-radius: var(--radius);
-    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.25);
-    max-width: 480px;
-    width: 100%;
-    padding: 28px 30px;
-    animation: modal-in 0.18s ease;
-}
-
-@keyframes modal-in {
-    from { opacity: 0; transform: translateY(8px) scale(0.98); }
-    to { opacity: 1; transform: none; }
-}
-
-.modal-title {
-    margin: 0 0 12px;
-    font-size: 22px;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-}
-
-.modal-desc {
-    margin: 0 0 24px;
-    color: var(--text-muted);
-    font-size: 15px;
-    line-height: 1.6;
-}
-
-.modal-desc strong { color: var(--text); }
-
-.modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
 }
 
 /* Banner */
