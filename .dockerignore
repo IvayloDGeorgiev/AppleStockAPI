@@ -1,0 +1,17 @@
+**/bin/
+**/obj/
+**/out/
+**/.vs/
+**/.idea/
+**/.vscode/
+**/*.user
+**/.git/
+**/.gitignore
+**/*.db
+**/*.db-shm
+**/*.db-wal
+appsettings.Development.json
+Dockerfile
+.dockerignore
+README.md
+_to_delete/

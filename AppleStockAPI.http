@@ -1,0 +1,20 @@
+@host = http://localhost:5174
+
+### Ingest AAPL data from Alpha Vantage (writes new days to the database)
+POST {{host}}/api/stocks/ingest
+
+### Get stored data (paged, newest first)
+GET {{host}}/api/stocks?page=1&pageSize=20&sortBy=priceDate&sortDirection=desc
+Accept: application/json
+
+### Search / filter / sort example
+GET {{host}}/api/stocks?page=1&pageSize=20&search=2026-08&sortBy=close&sortDirection=desc
+Accept: application/json
+
+### Latest stored record
+GET {{host}}/api/stocks/latest
+Accept: application/json
+
+### Record for a specific day (optional endpoint)
+GET {{host}}/api/stocks/2026-08-18
+Accept: application/json

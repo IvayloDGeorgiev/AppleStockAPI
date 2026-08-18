@@ -1,0 +1,25 @@
+# Build output
+bin/
+obj/
+out/
+
+# SQLite database files created at runtime
+*.db
+*.db-shm
+*.db-wal
+
+# Local secrets — the real Alpha Vantage API key lives here and must not be committed.
+appsettings.Development.json
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+.vscode/
+*.user
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Folder used to stage template files for deletion
+_to_delete/

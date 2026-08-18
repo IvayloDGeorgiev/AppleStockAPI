@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Apple Stock Explorer</title>
+    <meta name="description" content="Historical AAPL market data, served from the Apple Stock API." />
+    <link rel="stylesheet" href="/css/site.css" />
+</head>
+<body>
+    <!-- Header -->
+    <header class="site-header">
+        <div class="container header-inner">
+            <div class="header-text">
+                <h1>Apple Stock Explorer</h1>
+                <p class="subtitle">Historical AAPL market data &middot; powered by Alpha Vantage</p>
+            </div>
+            <button id="refreshBtn" type="button" class="btn btn-primary">
+                Refresh Stock Data
+            </button>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Global banner for ingestion results / errors -->
+        <div id="banner" class="banner" role="status" aria-live="polite" hidden></div>
+
+        <!-- Latest stock summary card -->
+        <section aria-labelledby="latestHeading">
+            <h2 id="latestHeading" class="visually-hidden">Latest record</h2>
+            <div id="latestCard" class="card summary-card" aria-busy="false">
+                <div class="summary-ticker">
+                    <span class="ticker-symbol">AAPL</span>
+                    <span class="ticker-name">Apple Inc.</span>
+                </div>
+
+                <div class="summary-close">
+                    <span class="summary-label">Latest Close</span>
+                    <span id="latestClose" class="summary-price">&mdash;</span>
+                    <span id="latestDate" class="summary-date"></span>
+                </div>
+
+                <dl class="summary-stats">
+                    <div class="stat">
+                        <dt>Open</dt>
+                        <dd id="latestOpen">&mdash;</dd>
+                    </div>
+                    <div class="stat">
+                        <dt>High</dt>
+                        <dd id="latestHigh">&mdash;</dd>
+                    </div>
+                    <div class="stat">
+                        <dt>Low</dt>
+                        <dd id="latestLow">&mdash;</dd>
+                    </div>
+                    <div class="stat">
+                        <dt>Volume</dt>
+                        <dd id="latestVolume">&mdash;</dd>
+                    </div>
+                </dl>
+            </div>
+        </section>
+
+        <!-- Historical data -->
+        <section aria-labelledby="historyHeading">
+            <h2 id="historyHeading" class="section-heading">Historical Market Data</h2>
+
+            <!-- Search -->
+            <div class="search-wrap">
+                <label for="searchInput" class="visually-hidden">Search stock data</label>
+                <input
+                    id="searchInput"
+                    type="search"
+                    class="search-input"
+                    placeholder="Search stock data…  (e.g. AAPL or 2026-08)"
+                    autocomplete="off" />
+            </div>
+
+            <!-- Filters -->
+            <div class="filters" role="group" aria-label="Filters">
+                <div class="filter-field">
+                    <label for="fromDate">From date</label>
+                    <input id="fromDate" type="date" />
+                </div>
+                <div class="filter-field">
+                    <label for="toDate">To date</label>
+                    <input id="toDate" type="date" />
+                </div>
+                <div class="filter-field">
+                    <label for="sortSelect">Sort</label>
+                    <select id="sortSelect">
+                        <option value="newest">Newest first</option>
+                        <option value="oldest">Oldest first</option>
+                        <option value="close-high">Highest closing price</option>
+                        <option value="close-low">Lowest closing price</option>
+                        <option value="volume-high">Highest volume</option>
+                    </select>
+                </div>
+                <button id="clearBtn" type="button" class="btn btn-ghost">Clear Filters</button>
+            </div>
+
+            <!-- Table / states -->
+            <div class="card table-card">
+                <div id="loading" class="state-message" hidden>
+                    <span class="spinner" aria-hidden="true"></span>
+                    Loading stock data…
+                </div>
+
+                <div id="error" class="state-message state-error" role="alert" hidden>
+                    <p class="state-title">Unable to load stock data.</p>
+                    <p class="state-detail">Please try again.</p>
+                </div>
+
+                <div id="empty" class="state-message" hidden>
+                    <p class="state-title">No stock data available yet.</p>
+                    <p class="state-detail">Run the ingestion endpoint to retrieve Apple stock data.</p>
+                    <button id="importBtn" type="button" class="btn btn-primary">Import AAPL Data</button>
+                </div>
+
+                <div id="tableWrap" class="table-scroll" hidden>
+                    <table class="stock-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Date</th>
+                                <th scope="col">Symbol</th>
+                                <th scope="col" class="num">Open</th>
+                                <th scope="col" class="num">High</th>
+                                <th scope="col" class="num">Low</th>
+                                <th scope="col" class="num">Close</th>
+                                <th scope="col" class="num">Volume</th>
+                                <th scope="col">Source</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stockTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination-bar">
+                <p id="resultSummary" class="result-summary" aria-live="polite"></p>
+                <nav id="pagination" class="pagination" aria-label="Pagination"></nav>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>Data via Alpha Vantage. Built with ASP.NET Core, Entity Framework Core and vanilla JavaScript.</p>
+        </div>
+    </footer>
+
+    <script src="/js/stocks.js"></script>
+</body>
+</html>
