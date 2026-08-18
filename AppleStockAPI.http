@@ -18,3 +18,7 @@ Accept: application/json
 ### Record for a specific day (optional endpoint)
 GET {{host}}/api/stocks/2026-08-18
 Accept: application/json
+
+### Clear all stored records (resets the database)
+DELETE {{host}}/api/stocks
+Accept: application/json

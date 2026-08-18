@@ -15,9 +15,28 @@
                 <h1>Apple Stock Explorer</h1>
                 <p class="subtitle">Historical AAPL market data &middot; powered by Alpha Vantage</p>
             </div>
-            <button id="ingestBtn" type="button" class="btn btn-primary">Ingest Data</button>
+            <div class="header-actions">
+                <button id="ingestBtn" type="button" class="btn btn-primary">Ingest Data</button>
+                <button id="clearDataBtn" type="button" class="btn btn-danger-ghost">Clear Data</button>
+            </div>
         </div>
     </header>
+
+    <!-- Confirmation modal for clearing the database -->
+    <div id="clearModal" class="modal-overlay" role="dialog" aria-modal="true"
+         aria-labelledby="clearModalTitle" aria-describedby="clearModalDesc" hidden>
+        <div class="modal" role="document">
+            <h2 id="clearModalTitle" class="modal-title">Clear all data?</h2>
+            <p id="clearModalDesc" class="modal-desc">
+                This permanently deletes <strong>every stored stock record</strong> from the
+                database. You can re-ingest afterwards, but this can't be undone.
+            </p>
+            <div class="modal-actions">
+                <button id="clearModalCancel" type="button" class="btn btn-ghost">Cancel</button>
+                <button id="clearModalConfirm" type="button" class="btn btn-danger">Clear data</button>
+            </div>
+        </div>
+    </div>
 
     <main class="container">
         <!-- Global banner for ingestion results / errors -->

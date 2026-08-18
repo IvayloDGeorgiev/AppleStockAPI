@@ -105,4 +105,16 @@ public class StocksController : ControllerBase
 
         return Ok(match);
     }
+
+    /// <summary>
+    /// Delete every stored stock record. Useful for resetting the (SQLite) demo database.
+    /// Returns the number of rows removed.
+    /// </summary>
+    [HttpDelete]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> Clear(CancellationToken cancellationToken)
+    {
+        var deleted = await _stockDataService.ClearAllAsync(cancellationToken);
+        return Ok(new { deleted });
+    }
 }

@@ -24,4 +24,7 @@ public interface IStockDataService
 
     /// <summary>Return the AAPL record for a specific trading day, or null.</summary>
     Task<StockPriceDto?> GetStockByDateAsync(DateOnly date, CancellationToken cancellationToken = default);
+
+    /// <summary>Delete every stored record and return how many rows were removed.</summary>
+    Task<int> ClearAllAsync(CancellationToken cancellationToken = default);
 }

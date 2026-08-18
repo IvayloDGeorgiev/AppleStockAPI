@@ -217,6 +217,7 @@ docker run -p 8080:8080 \
 | `GET /api/stocks` | Return stored records as a paged result. Supports `page`, `pageSize` (max 100), `search`, `fromDate`, `toDate`, `sortBy` (`priceDate`/`close`/`volume`), `sortDirection` (`asc`/`desc`). Never calls Alpha Vantage. |
 | `GET /api/stocks/latest` | Return the newest stored record, or `404` if the store is empty. |
 | `GET /api/stocks/{date}` | Optional. Return the record for a specific `yyyy-MM-dd`, or `404`. |
+| `DELETE /api/stocks` | Delete every stored record (handy for resetting the SQLite demo database). Returns `{ "deleted": n }`. |
 
 Example ingest response (second run, everything already stored):
 
@@ -247,7 +248,9 @@ and the full history in a table with a debounced search box, from/to date filter
 sort options, and pagination controls. Each row also shows a coloured **Change** (close vs
 open, green ▲ / red ▼) and a **Day range** bar (where the open-to-close move sat within the
 day's low–high); column headings and the range bars have explanatory tooltips. An **Ingest
-Data** button in the header triggers a fresh pull from Alpha Vantage.
+Data** button in the header triggers a fresh pull from Alpha Vantage, and a **Clear Data**
+button (with a confirmation dialog) empties the database — useful for resetting the SQLite
+demo.
 
 Crucially, **the browser only ever calls this application's own API** — it never contacts
 Alpha Vantage directly, and it never receives the API key. Search, filtering, sorting and

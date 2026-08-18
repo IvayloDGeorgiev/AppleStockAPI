@@ -202,6 +202,15 @@ public class StockDataService : IStockDataService
         return match is null ? null : ToDto(match);
     }
 
+    public async Task<int> ClearAllAsync(CancellationToken cancellationToken = default)
+    {
+        // Bulk delete straight in the database (no change-tracking round-trip). Works on both
+        // SQL Server and SQLite and returns the number of rows removed.
+        var deleted = await _dbContext.StockPrices.ExecuteDeleteAsync(cancellationToken);
+        _logger.LogInformation("Cleared {Count} stock records from the database", deleted);
+        return deleted;
+    }
+
     // ----- helpers -------------------------------------------------------
 
     private string BuildRequestUri()

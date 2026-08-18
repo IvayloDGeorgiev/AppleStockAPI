@@ -20,6 +20,10 @@ const SORT_OPTIONS = {
 // ---- Element references ----------------------------------------------------
 const el = {
     ingestBtn: document.getElementById("ingestBtn"),
+    clearDataBtn: document.getElementById("clearDataBtn"),
+    clearModal: document.getElementById("clearModal"),
+    clearModalConfirm: document.getElementById("clearModalConfirm"),
+    clearModalCancel: document.getElementById("clearModalCancel"),
     banner: document.getElementById("banner"),
 
     latestCard: document.getElementById("latestCard"),
@@ -411,6 +415,56 @@ async function ingestData() {
     }
 }
 
+// ---- Clear database (with confirmation modal) ------------------------------
+function openClearModal() {
+    el.clearModal.hidden = false;
+    el.clearModalCancel.focus();
+    document.addEventListener("keydown", onClearModalKeydown);
+}
+
+function closeClearModal() {
+    el.clearModal.hidden = true;
+    document.removeEventListener("keydown", onClearModalKeydown);
+    el.clearDataBtn.focus();
+}
+
+function onClearModalKeydown(e) {
+    if (e.key === "Escape") closeClearModal();
+}
+
+async function confirmClear() {
+    closeClearModal();
+    el.clearDataBtn.disabled = true;
+    el.ingestBtn.disabled = true;
+    const originalText = el.clearDataBtn.textContent;
+    el.clearDataBtn.textContent = "Clearing…";
+
+    try {
+        const response = await fetch(API_BASE, { method: "DELETE" });
+        const body = await response.json().catch(() => null);
+
+        if (!response.ok) {
+            const detail = (body && (body.detail || body.title)) || "Could not clear the data. Please try again.";
+            showBanner(detail, true);
+            return;
+        }
+
+        const n = body && typeof body.deleted === "number" ? body.deleted : 0;
+        showBanner(`Database cleared — ${numberFmt.format(n)} record${n === 1 ? "" : "s"} deleted.`, false);
+
+        // Refresh the (now empty) latest card and table.
+        currentPage = 1;
+        await Promise.all([loadLatestStock(), loadStocks()]);
+    } catch (err) {
+        console.error("Clear request failed", err);
+        showBanner("Unable to reach the server. Please try again.", true);
+    } finally {
+        el.clearDataBtn.disabled = false;
+        el.ingestBtn.disabled = false;
+        el.clearDataBtn.textContent = originalText;
+    }
+}
+
 // ---- Filters ---------------------------------------------------------------
 function applyFilters() {
     currentPage = 1;
@@ -439,6 +493,12 @@ el.ingestBtn.addEventListener("click", ingestData);
 el.importBtn.addEventListener("click", ingestData);
 el.clearBtn.addEventListener("click", clearFilters);
 el.sort.addEventListener("change", applyFilters);
+
+// Clear-database modal
+el.clearDataBtn.addEventListener("click", openClearModal);
+el.clearModalConfirm.addEventListener("click", confirmClear);
+el.clearModalCancel.addEventListener("click", closeClearModal);
+el.clearModal.addEventListener("click", (e) => { if (e.target === el.clearModal) closeClearModal(); });
 el.fromDate.addEventListener("change", applyFilters);
 el.toDate.addEventListener("change", applyFilters);
 el.search.addEventListener("input", debounce(applyFilters, 350));
