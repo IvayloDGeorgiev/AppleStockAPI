@@ -421,6 +421,8 @@ Everything lives in one resource group (`AppleWebAPI`). After setup it contains 
 | `applestockapi` | Container App | The running application itself. It pulls the image from `ghcr.io`, exposes public HTTPS ingress on port 8080, holds the Alpha Vantage key as a secret, and **scales to zero** when idle (which is what keeps it free). |
 | `workspace-xxxxxxxx` | Log Analytics workspace | Auto-created alongside the environment. It collects the container's console/log output so you can view and query logs in the portal. |
 
+![The AppleWebAPI resource group with the three resources](docs/images/resource-group.png)
+
 ---
 
 ## Azure Container Setup
@@ -568,6 +570,11 @@ _📸 Screenshot placeholder: `docs/images/az-04-oidc-identity.png`_
 
 ## GitHub Pipeline Setup
 
+A successful run — the **build** job builds and pushes the image, then the **deploy** job
+updates the Container App:
+
+![Successful GitHub Actions run: build then deploy, both green](docs/images/pipeline-success.png)
+
 <details>
 <summary><b>Step 1 — Add the three repository secrets</b></summary>
 
@@ -581,7 +588,7 @@ the federated credential):
 | `AZURE_TENANT_ID` | your tenant ID |
 | `AZURE_SUBSCRIPTION_ID` | your subscription ID |
 
-_📸 Screenshot placeholder: `docs/images/gh-01-secrets.png`_
+![The three repository secrets configured in GitHub](docs/images/github-secrets.png)
 </details>
 
 <details>
@@ -686,5 +693,5 @@ _📸 Screenshot placeholder: `docs/images/gh-03-package-public.png`_
 > database is empty after each cold start or new deploy — click **Ingest Data** to refill it.
 > Azure SQL would be the persistent production alternative.
 
-_📸 Screenshot placeholder: `docs/images/gh-04-verify.png`_
+_(See the successful run screenshot at the top of this section.)_
 </details>
