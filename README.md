@@ -424,7 +424,6 @@ Everything lives in one resource group (`AppleWebAPI`). After setup it contains 
 ![The AppleWebAPI resource group with the three resources](docs/images/resource-group.png)
 
 ---
-
 ## Azure Container Setup
 
 Run these once in **Azure Cloud Shell** (the `>_` icon in the portal, set to **Bash**). Replace
