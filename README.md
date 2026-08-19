@@ -239,6 +239,36 @@ Example `GET /api/stocks?page=1&pageSize=20`:
 
 ---
 
+## Using Scalar (live API testing)
+
+The API ships with **[Scalar](https://scalar.com/)**, an interactive API reference generated
+from the app's OpenAPI document. It lets you read and **run every endpoint live** from the
+browser — no Postman or curl needed — which makes it the quickest way to exercise the API
+during a demo or review.
+
+Open it at **`/scalar`** — locally `http://localhost:8080/scalar`, or on the deployed app
+`https://<app>.<region>.azurecontainerapps.io/scalar`:
+
+![Scalar interactive API reference](docs/images/scalar.png)
+
+**How to use it:**
+
+1. The left sidebar lists the endpoints grouped under **Stocks** — click one (e.g.
+   `POST /api/Stocks/ingest`).
+2. Click **Test Request** (top-right of the endpoint) to open the interactive panel.
+3. Fill in any inputs: query parameters like `page` / `pageSize` for `GET /api/stocks`, or the
+   `{date}` path value for `GET /api/stocks/{date}`. Endpoints with no inputs (ingest, latest,
+   delete) need nothing.
+4. Click **Send** — Scalar calls the live API and shows the real HTTP status and JSON response.
+5. The **Server** box at the top is the address requests go to; opening Scalar on the deployed
+   app automatically targets that Azure URL (as shown above).
+
+A good end-to-end run: `POST /api/stocks/ingest` (loads data) → `GET /api/stocks` (see it
+paged) → `GET /api/stocks/latest` → `POST /api/stocks/ingest` again (watch `recordsInserted`
+drop to `0` as duplicates are skipped) → `DELETE /api/stocks` (wipe) → `GET /api/stocks` (empty).
+
+---
+
 ## Frontend
 
 `wwwroot` contains a single-page "Apple Stock Explorer" built with plain HTML, CSS and
@@ -365,3 +395,296 @@ jeopardise the primary SQL Server path.
   dataset is small here, but the retrieval pattern stays appropriate as it grows.
 - A single `Database:Provider` setting chooses the EF Core provider; nothing else in the
   codebase changes when switching between SQL Server and SQLite.
+
+---
+
+## Deployment — CI/CD to Azure Container Apps
+
+The app runs as a Docker container on **Azure Container Apps** (free Consumption plan), and
+every push to `main` automatically rebuilds and redeploys it via **GitHub Actions**. The two
+sections below document the setup exactly, so it can be recreated from scratch.
+
+**Flow:** `git push` → GitHub Actions builds the image → pushes it to GitHub Container Registry
+(`ghcr.io`) → logs in to Azure with OIDC (no password) → tells the Container App to run the new
+image.
+
+> **Order matters:** do **Azure Container Setup** first (it creates the infrastructure and the
+> deployment identity), then **GitHub Pipeline Setup** (the workflow that deploys into it).
+
+### What's in the resource group
+
+Everything lives in one resource group (`AppleWebAPI`). After setup it contains three resources:
+
+| Resource | Type | What it's for |
+| --- | --- | --- |
+| `applestock-env` | Container Apps Environment | The hosting boundary every container app runs inside — it defines the shared network and logging context for the app. Free on the Consumption plan. |
+| `applestockapi` | Container App | The running application itself. It pulls the image from `ghcr.io`, exposes public HTTPS ingress on port 8080, holds the Alpha Vantage key as a secret, and **scales to zero** when idle (which is what keeps it free). |
+| `workspace-xxxxxxxx` | Log Analytics workspace | Auto-created alongside the environment. It collects the container's console/log output so you can view and query logs in the portal. |
+
+---
+
+## Azure Container Setup
+
+Run these once in **Azure Cloud Shell** (the `>_` icon in the portal, set to **Bash**). Replace
+the placeholder values in step 0 with your own.
+
+<details>
+<summary><b>Step 0 — Set session variables</b></summary>
+
+```bash
+RG=AppleWebAPI
+LOCATION=uksouth                      # UK West doesn't offer Container Apps; the RG's region is just a label
+ENVIRONMENT=applestock-env
+APP=applestockapi
+IMAGE=ghcr.io/ivaylodgeorgiev/applestockapi   # must be lowercase
+GH_REPO=IvayloDGeorgiev/AppleStockAPI
+
+SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+TENANT_ID=$(az account show --query tenantId -o tsv)
+echo "Subscription: $SUBSCRIPTION_ID"
+echo "Tenant:       $TENANT_ID"
+```
+
+_📸 Screenshot placeholder: `docs/images/az-00-variables.png`_
+</details>
+
+<details>
+<summary><b>Step 1 — Register the Container Apps provider + CLI extension</b></summary>
+
+```bash
+az extension add --name containerapp --upgrade
+az provider register --namespace Microsoft.App
+az provider register --namespace Microsoft.OperationalInsights
+```
+
+The two `register` commands run in the background. Wait until both report `Registered`:
+
+```bash
+az provider show -n Microsoft.App --query registrationState -o tsv
+az provider show -n Microsoft.OperationalInsights --query registrationState -o tsv
+```
+
+_📸 Screenshot placeholder: `docs/images/az-01-providers-registered.png`_
+</details>
+
+<details>
+<summary><b>Step 2 — Create the Container Apps environment</b></summary>
+
+```bash
+az containerapp env create \
+  --name "$ENVIRONMENT" \
+  --resource-group "$RG" \
+  --location "$LOCATION"
+```
+
+Takes ~2–3 minutes and auto-creates the Log Analytics workspace. Success = JSON with
+`"provisioningState": "Succeeded"`.
+
+_📸 Screenshot placeholder: `docs/images/az-02-environment.png`_
+</details>
+
+<details>
+<summary><b>Step 3 — Create the Container App</b></summary>
+
+Created with a temporary placeholder image; the pipeline swaps in the real image on its first
+run. Key settings: port 8080, external HTTPS ingress, the Alpha Vantage key as a **secret**,
+SQLite, and scale-to-zero.
+
+```bash
+az containerapp create \
+  --name "$APP" \
+  --resource-group "$RG" \
+  --environment "$ENVIRONMENT" \
+  --image mcr.microsoft.com/k8se/quickstart:latest \
+  --target-port 8080 \
+  --ingress external \
+  --min-replicas 0 \
+  --max-replicas 1 \
+  --cpu 0.25 --memory 0.5Gi \
+  --secrets alpha-vantage-key=YOUR_ALPHA_VANTAGE_KEY \
+  --env-vars AlphaVantage__ApiKey=secretref:alpha-vantage-key Database__Provider=Sqlite
+```
+
+The placeholder image serves on port 80, so this first revision shows **unhealthy** — expected;
+the first pipeline deploy fixes it. Get the public URL with:
+
+```bash
+az containerapp show -n "$APP" -g "$RG" --query properties.configuration.ingress.fqdn -o tsv
+```
+
+_📸 Screenshot placeholder: `docs/images/az-03-container-app.png`_
+</details>
+
+<details>
+<summary><b>Step 4 — Create the passwordless deploy identity (OIDC)</b></summary>
+
+GitHub Actions logs in to Azure with **no stored password** — it uses a Microsoft Entra app
+registration whose trust is federated to this repo.
+
+```bash
+# 4a. App registration + service principal
+APP_ID=$(az ad app create --display-name "gh-applestockapi-deploy" --query appId -o tsv)
+az ad sp create --id "$APP_ID"
+echo "APP_ID=$APP_ID"
+
+# 4b. Federated credential (trust GitHub Actions on this repo's main branch)
+az ad app federated-credential create \
+  --id "$APP_ID" \
+  --parameters "{
+    \"name\": \"github-main\",
+    \"issuer\": \"https://token.actions.githubusercontent.com\",
+    \"subject\": \"repo:${GH_REPO}:ref:refs/heads/main\",
+    \"audiences\": [\"api://AzureADTokenExchange\"]
+  }"
+
+# 4c. Grant Contributor on the resource group only (least privilege)
+az role assignment create \
+  --assignee "$APP_ID" \
+  --role Contributor \
+  --scope "/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RG}"
+
+# 4d. Print the three values needed as GitHub secrets
+echo "AZURE_CLIENT_ID=$APP_ID"
+echo "AZURE_TENANT_ID=$TENANT_ID"
+echo "AZURE_SUBSCRIPTION_ID=$SUBSCRIPTION_ID"
+```
+
+> **Gotcha — `AADSTS700213` (immutable subject).** GitHub may present a subject that includes
+> numeric IDs, e.g. `repo:OWNER@12345/REPO@67890:ref:refs/heads/main`, which won't match the
+> name-based subject in 4b. If the pipeline's **Log in to Azure** step fails with `AADSTS700213`,
+> copy the exact `subject` string from that error and add a second matching credential:
+>
+> ```bash
+> SUBJECT='<paste the exact subject from the error>'
+> az ad app federated-credential create \
+>   --id "$APP_ID" \
+>   --parameters "{\"name\":\"github-main-immutable\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"$SUBJECT\",\"audiences\":[\"api://AzureADTokenExchange\"]}"
+> ```
+
+_📸 Screenshot placeholder: `docs/images/az-04-oidc-identity.png`_
+</details>
+
+---
+
+## GitHub Pipeline Setup
+
+<details>
+<summary><b>Step 1 — Add the three repository secrets</b></summary>
+
+In the repo: **Settings → Secrets and variables → Actions → New repository secret**. Add the
+three values printed in Azure Step 4d (these are identifiers, not passwords — the real trust is
+the federated credential):
+
+| Name | Value |
+| --- | --- |
+| `AZURE_CLIENT_ID` | the app registration's `appId` |
+| `AZURE_TENANT_ID` | your tenant ID |
+| `AZURE_SUBSCRIPTION_ID` | your subscription ID |
+
+_📸 Screenshot placeholder: `docs/images/gh-01-secrets.png`_
+</details>
+
+<details>
+<summary><b>Step 2 — Add the workflow file</b></summary>
+
+Create `.github/workflows/deploy.yml` with the content below and commit it to `main`. It has two
+jobs — **build** (build & push the image to ghcr) and **deploy** (`needs: build`, OIDC login,
+then update the Container App):
+
+```yaml
+name: Build and deploy to Azure Container Apps
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  IMAGE: ghcr.io/ivaylodgeorgiev/applestockapi   # must be lowercase
+  RESOURCE_GROUP: AppleWebAPI
+  APP_NAME: applestockapi
+
+jobs:
+  build:
+    name: Build and push image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+
+  deploy:
+    name: Deploy to Container App
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Log in to Azure (OIDC, no password)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy new image to Container App
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az config set extension.use_dynamic_install=yes_without_prompt
+            az containerapp update \
+              --name "$APP_NAME" \
+              --resource-group "$RESOURCE_GROUP" \
+              --image "${IMAGE}:${GITHUB_SHA}"
+```
+
+_📸 Screenshot placeholder: `docs/images/gh-02-workflow-run.png`_
+</details>
+
+<details>
+<summary><b>Step 3 — Make the image package public</b></summary>
+
+The first pipeline run creates the image on `ghcr.io`, initially **private**, so the Container
+App can't pull it yet. Make it public once: GitHub → your profile **Packages** → open
+**applestockapi** → **Package settings** → **Change visibility → Public**.
+
+_(Alternative for a private image: give the Container App pull credentials with*
+`az containerapp registry set --server ghcr.io --username <user> --password <PAT-with-read:packages> -n applestockapi -g AppleWebAPI`.)_
+
+_📸 Screenshot placeholder: `docs/images/gh-03-package-public.png`_
+</details>
+
+<details>
+<summary><b>Step 4 — Verify</b></summary>
+
+1. Under the repo's **Actions** tab, the run should show **Build ✅ → Deploy ✅**.
+2. Open the Container App URL (Azure Step 3). Allow a few seconds for the scale-to-zero cold
+   start, then click **Ingest Data** to confirm live data flows in the cloud.
+3. From now on, every push to `main` rebuilds and redeploys automatically.
+
+> **Note on data:** because the app scales to zero and uses SQLite inside the container, the
+> database is empty after each cold start or new deploy — click **Ingest Data** to refill it.
+> Azure SQL would be the persistent production alternative.
+
+_📸 Screenshot placeholder: `docs/images/gh-04-verify.png`_
+</details>
