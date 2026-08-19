@@ -5,19 +5,18 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-permissions:
-  contents: read      # checkout the code
-  packages: write     # push the image to ghcr.io
-  id-token: write     # passwordless (OIDC) login to Azure
-
 env:
-  IMAGE: ghcr.io/ivaylodgeorgiev/applestockapi   # must be lowercase
+  IMAGE: ghcr.io/ivaylodgeorgiev/applestockapi
   RESOURCE_GROUP: AppleWebAPI
   APP_NAME: applestockapi
 
 jobs:
-  build-and-deploy:
+  build:
+    name: Build and push image
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,6 +37,14 @@ jobs:
             ${{ env.IMAGE }}:latest
             ${{ env.IMAGE }}:${{ github.sha }}
 
+  deploy:
+    name: Deploy to Container App
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
       - name: Log in to Azure (OIDC, no password)
         uses: azure/login@v2
         with:
